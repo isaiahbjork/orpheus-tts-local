@@ -66,6 +66,16 @@ You can add emotion to the speech by adding the following tags:
 <yawn>
 <gasp>
 ```
+## Streamlit Web Interface
+
+For a more user-friendly experience, you can use the Streamlit web interface.
+
+### Running the Streamlit App
+
+```bash
+streamlit run app.py
+```
+The web app provides an easy way to input text, select a voice, adjust parameters, generate speech, and save results.
 
 ## License
 
