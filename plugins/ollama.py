@@ -1,4 +1,5 @@
 import requests
+import json
 
 from common import format_prompt, DEFAULT_VOICE, MAX_TOKENS, TEMPERATURE, TOP_P, REPETITION_PENALTY, HEADERS
 
@@ -14,27 +15,31 @@ def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATUR
     # Construct payload based on Ollama's API requirements
     data = {
         "model": TTS_MODEL,
-        "prompt": prompt,
-        "voice": voice,
+        "prompt": formatted_prompt,
+        "num_predict": max_tokens,
         "temperature": temperature,
         "top_p": top_p,
-        "max_tokens": max_tokens,
-        "repetition_penalty": repetition_penalty
+        "repeat_penalty": repetition_penalty,
     }
     
     try:
-        response = requests.post(OLLAMA_API_URL, headers=HEADERS, json=data)
+        response = requests.post(OLLAMA_API_URL, headers=HEADERS, json=data, stream=True)
         response.raise_for_status()
-        
-        print(response.text)
 
-        # Parse the JSON response from Ollama
-        token_data = response.json()
-        
-        for token in token_data.get('tokens', []):
-            yield token
-            
+        # Process streamed JSON responses
+        for line in response.iter_lines():
+            print(line)
+            if line:
+                try:
+                    token_data = json.loads(line)
+                    if "response" in token_data:
+                        yield token_data["response"]
+                    if token_data.get("done"):
+                        break  
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
+                    continue
+
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         return
-
