@@ -12,6 +12,7 @@ import queue
 import asyncio
 
 # LM Studio API settings
+Ollama_API_URL = "http://localhost:11434/api/generate"
 API_URL = "http://127.0.0.1:1234/v1/completions"
 HEADERS = {
     "Content-Type": "application/json"
@@ -48,7 +49,7 @@ def format_prompt(prompt, voice=DEFAULT_VOICE):
     
     return f"{special_start}{formatted_prompt}{special_end}"
 
-def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATURE, 
+def generate_tokens_from_api_orig(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATURE, 
                             top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
     """Generate tokens from text using LM Studio API."""
     formatted_prompt = format_prompt(prompt, voice)
@@ -56,7 +57,7 @@ def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATUR
     
     # Create the request payload for the LM Studio API
     payload = {
-        "model": "orpheus-3b-0.1-ft-q4_k_m",  # Model name can be anything, LM Studio ignores it
+        # "model": "orpheus-3b-0.1-ft-q4_k_m",  # Model name can be anything, LM Studio ignores it
         "prompt": formatted_prompt,
         "max_tokens": max_tokens,
         "temperature": temperature,
@@ -95,6 +96,36 @@ def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATUR
                     continue
     
     print("Token generation complete")
+
+
+def generate_tokens_from_api(prompt, voice, temperature=0.7, top_p=1, max_tokens=1024, repetition_penalty=1.1):
+    """Generate tokens from text using the Ollama model."""
+    
+    # Construct payload based on Ollama's API requirements
+    data = {
+        "model": "isaiabjork/orpheus-tts:3b-Q4_K_M",
+        "prompt": prompt,
+        "voice": voice,
+        "temperature": temperature,
+        "top_p": top_p,
+        "max_tokens": max_tokens,
+        "repetition_penalty": repetition_penalty
+    }
+    
+    try:
+        response = requests.post(Ollama_API_URL, json=data)
+        response.raise_for_status()
+        
+        # Parse the JSON response from Ollama
+        token_data = response.json()
+        
+        for token in token_data.get('tokens', []):
+            yield token
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        return
+
 
 def turn_token_into_id(token_string, index):
     """Convert token string to numeric ID for audio processing."""
