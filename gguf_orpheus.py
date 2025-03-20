@@ -10,6 +10,7 @@ import argparse
 import threading
 import queue
 import asyncio
+import re
 
 # LM Studio API settings
 API_URL = "http://127.0.0.1:1234/v1/completions"
@@ -23,6 +24,7 @@ TEMPERATURE = 0.6
 TOP_P = 0.9
 REPETITION_PENALTY = 1.1
 SAMPLE_RATE = 24000  # SNAC model uses 24kHz
+CHUNK_LIMIT = 400
 
 # Available voices based on the Orpheus-TTS repository
 AVAILABLE_VOICES = ["tara", "leah", "jess", "leo", "dan", "mia", "zac", "zoe"]
@@ -47,6 +49,32 @@ def format_prompt(prompt, voice=DEFAULT_VOICE):
     special_end = "<|eot_id|>"   # Using the eos_token from config
     
     return f"{special_start}{formatted_prompt}{special_end}"
+
+def chunk_text(text, max_length=400):
+    """
+    Split text into chunks based on sentence delimiters (., !, ?).
+    Each chunk will be at most max_length characters.
+    """
+    # Initialize variables
+    chunks = []
+    current_chunk = ""
+    
+    # Split the text by sentence delimiters while keeping the delimiters
+    sentences = re.findall(r'[^.!?]+[.!?](?:\s|$)', text + " ")
+    
+    for sentence in sentences:
+        # If adding this sentence would exceed max_length, start a new chunk
+        if len(current_chunk) + len(sentence) > max_length and current_chunk:
+            chunks.append(current_chunk.strip())
+            current_chunk = sentence
+        else:
+            current_chunk += sentence
+    
+    # Add the last chunk if it's not empty
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+    
+    return chunks
 
 def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATURE, 
                             top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
@@ -217,19 +245,57 @@ def stream_audio(audio_buffer):
     sd.wait()
 
 def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE, 
-                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
+                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY,
+                     chunk_max_length=CHUNK_LIMIT):
     """Generate speech from text using Orpheus model via LM Studio API."""
-    return tokens_decoder_sync(
-        generate_tokens_from_api(
-            prompt=prompt, 
-            voice=voice,
-            temperature=temperature,
-            top_p=top_p,
-            max_tokens=max_tokens,
-            repetition_penalty=repetition_penalty
-        ),
-        output_file=output_file
-    )
+    
+    # If prompt is longer than chunk_max_length, split it into chunks
+    if len(prompt) > chunk_max_length:
+        chunks = chunk_text(prompt, chunk_max_length)
+        all_audio_segments = []
+        
+        print(f"Text split into {len(chunks)} chunks for processing")
+        
+        for i, chunk in enumerate(chunks):
+            print(f"Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
+            chunk_segments = tokens_decoder_sync(
+                generate_tokens_from_api(
+                    prompt=chunk, 
+                    voice=voice,
+                    temperature=temperature,
+                    top_p=top_p,
+                    max_tokens=max_tokens,
+                    repetition_penalty=repetition_penalty
+                ),
+                output_file=None  # Don't write intermediate chunks to file
+            )
+            all_audio_segments.extend(chunk_segments)
+        
+        if output_file:
+            with wave.open(output_file, "wb") as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(SAMPLE_RATE)
+                for segment in all_audio_segments:
+                    wav_file.writeframes(segment)
+        
+        duration = sum([len(segment) // (2 * 1) for segment in all_audio_segments]) / SAMPLE_RATE
+        print(f"Generated {len(all_audio_segments)} audio segments")
+        print(f"Generated {duration:.2f} seconds of audio")
+        
+        return all_audio_segments
+    else:
+        return tokens_decoder_sync(
+            generate_tokens_from_api(
+                prompt=prompt, 
+                voice=voice,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+                repetition_penalty=repetition_penalty
+            ),
+            output_file=output_file
+        )
 
 def list_available_voices():
     """List all available voices with the recommended one marked."""
@@ -245,7 +311,8 @@ def list_available_voices():
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Orpheus Text-to-Speech using LM Studio API")
-    parser.add_argument("--text", type=str, help="Text to convert to speech")
+    parser.add_argument("--text", type=str, help="Text to convert to speech", default=None)
+    parser.add_argument("--file", type=str, help="Text file to convert to speech", default=None)
     parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help=f"Voice to use (default: {DEFAULT_VOICE})")
     parser.add_argument("--output", type=str, help="Output WAV file path")
     parser.add_argument("--list-voices", action="store_true", help="List available voices")
@@ -253,15 +320,21 @@ def main():
     parser.add_argument("--top_p", type=float, default=TOP_P, help="Top-p sampling parameter")
     parser.add_argument("--repetition_penalty", type=float, default=REPETITION_PENALTY, 
                        help="Repetition penalty (>=1.1 required for stable generation)")
+    parser.add_argument("--chunk-max-length", type=int, default=CHUNK_LIMIT, 
+                       help="Maximum length of text chunks for processing")
     
     args = parser.parse_args()
     
     if args.list_voices:
         list_available_voices()
         return
-    
-    # Use text from command line or prompt user
-    prompt = args.text
+
+    if args.file:
+        with open(args.file, "r") as file:
+            prompt = file.read()
+    else:
+        # Use text from command line or prompt user
+        prompt = args.text
     if not prompt:
         if len(sys.argv) > 1 and sys.argv[1] not in ("--voice", "--output", "--temperature", "--top_p", "--repetition_penalty"):
             prompt = " ".join([arg for arg in sys.argv[1:] if not arg.startswith("--")])
@@ -288,7 +361,8 @@ def main():
         temperature=args.temperature,
         top_p=args.top_p,
         repetition_penalty=args.repetition_penalty,
-        output_file=output_file
+        output_file=output_file,
+        chunk_max_length=args.chunk_max_length
     )
     end_time = time.time()
     
