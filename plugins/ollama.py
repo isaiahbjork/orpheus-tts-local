@@ -21,9 +21,7 @@ def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATUR
             "temperature": temperature,
             "top_p": top_p,
             "repeat_penalty": repetition_penalty,
-            "seed": 42
         },
-        "raw": True,
         "stream": True
     }
 
