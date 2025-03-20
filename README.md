@@ -14,6 +14,7 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
 1. Install [LM Studio](https://lmstudio.ai/), [Ollama](https://https://ollama.com/download), or [Llama.cpp's Server](https://github.com/ggml-org/llama.cpp)
 2. Download the [Orpheus TTS model (orpheus-3b-0.1-ft-q4_k_m.gguf)](https://huggingface.co/isaiahbjork/orpheus-3b-0.1-ft-Q4_K_M-GGUF) in your inference engine of choice
   - For Ollama, do `ollama pull hf.co/isaiahbjork/orpheus-3b-0.1-ft-Q4_K_M-GGUF`
+  - For llama.cpp, do `llama-server -hf isaiahbjork/orpheus-3b-0.1-ft-Q4_K_M-GGUF`
 3. Start up the model For LM Studio
   - Load the Orpheus model in LM Studio
   - Start the local server in LM Studio (default: http://127.0.0.1:1234)
