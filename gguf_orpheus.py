@@ -10,6 +10,7 @@ import argparse
 import threading
 import queue
 import asyncio
+import torch
 
 # LM Studio API settings
 API_URL = "http://127.0.0.1:1234/v1/completions"
@@ -48,11 +49,54 @@ def format_prompt(prompt, voice=DEFAULT_VOICE):
     
     return f"{special_start}{formatted_prompt}{special_end}"
 
-def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATURE, 
+def tokenize_audio(wav:str):
+    # modified from official colab: https://colab.research.google.com/drive/10v9MIEbZOr_3V8ZcPAIh8MN7q2LjcstS?usp=sharing
+    import librosa
+    waveform, _ = librosa.load(wav, sr=24000)
+    waveform = torch.from_numpy(waveform).unsqueeze(0)
+    waveform = waveform.to(dtype=torch.float32)
+    waveform = waveform.unsqueeze(0)
+
+    with torch.inference_mode():
+        from decoder import model, snac_device
+        codes = model.encode(waveform.to(snac_device))
+
+    all_codes = []
+    for i in range(codes[0].shape[1]):
+        all_codes.append(codes[0][0][i].item()+128266)
+        all_codes.append(codes[1][0][2*i].item()+128266+4096)
+        all_codes.append(codes[2][0][4*i].item()+128266+(2*4096))
+        all_codes.append(codes[2][0][(4*i)+1].item()+128266+(3*4096))
+        all_codes.append(codes[1][0][(2*i)+1].item()+128266+(4*4096))
+        all_codes.append(codes[2][0][(4*i)+2].item()+128266+(5*4096))
+        all_codes.append(codes[2][0][(4*i)+3].item()+128266+(6*4096))
+    return all_codes
+
+def format_prompt_vc(prompt, voice_wav, transcript):
+    # modified from official colab: https://colab.research.google.com/drive/10v9MIEbZOr_3V8ZcPAIh8MN7q2LjcstS?usp=sharing
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained("canopylabs/orpheus-tts-0.1-pretrained")
+    audio_tokens = tokenize_audio(voice_wav)
+    start_tokens = torch.tensor([[ 128259]], dtype=torch.int64)
+    end_tokens = torch.tensor([[128009, 128260, 128261, 128257]], dtype=torch.int64)
+    final_tokens = torch.tensor([[128258, 128262]], dtype=torch.int64)
+    prompt_tokked = tokenizer(transcript, return_tensors="pt")
+    input_ids = prompt_tokked["input_ids"]
+    zeroprompt_input_ids = torch.cat([start_tokens, input_ids, end_tokens, torch.tensor([audio_tokens]), final_tokens], dim=1) # SOH SOT Text EOT EOH
+    input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+    second_input_ids = torch.cat([zeroprompt_input_ids, start_tokens, input_ids, end_tokens], dim=1)
+    text = tokenizer.decode(second_input_ids[0])
+    return text
+
+def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, voice_wav=None, transcript=None, temperature=TEMPERATURE, 
                             top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
     """Generate tokens from text using LM Studio API."""
-    formatted_prompt = format_prompt(prompt, voice)
-    print(f"Generating speech for: {formatted_prompt}")
+    if voice_wav and transcript:
+        formatted_prompt = format_prompt_vc(prompt, voice_wav, transcript)
+        print(f"Generating speech for: {prompt}")
+    else:
+        formatted_prompt = format_prompt(prompt, voice)
+        print(f"Generating speech for: {formatted_prompt}")
     
     # Create the request payload for the LM Studio API
     payload = {
@@ -216,13 +260,15 @@ def stream_audio(audio_buffer):
     sd.play(audio_float, SAMPLE_RATE)
     sd.wait()
 
-def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE, 
+def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, voice_wav=None, transcript=None, output_file=None, temperature=TEMPERATURE, 
                      top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
     """Generate speech from text using Orpheus model via LM Studio API."""
     return tokens_decoder_sync(
         generate_tokens_from_api(
             prompt=prompt, 
             voice=voice,
+            voice_wav=voice_wav,
+            transcript=transcript,
             temperature=temperature,
             top_p=top_p,
             max_tokens=max_tokens,
@@ -247,6 +293,9 @@ def main():
     parser = argparse.ArgumentParser(description="Orpheus Text-to-Speech using LM Studio API")
     parser.add_argument("--text", type=str, help="Text to convert to speech")
     parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help=f"Voice to use (default: {DEFAULT_VOICE})")
+    parser.add_argument("--voice_wav", type=str, help="Wav file for voice cloning")
+    parser.add_argument("--transcript", type=str, help="Transcript of the voice_wav for voice cloning")
+    parser.add_argument("--max-tokens", type=int, default=1200, help="Maximum number of tokens to generate")
     parser.add_argument("--output", type=str, help="Output WAV file path")
     parser.add_argument("--list-voices", action="store_true", help="List available voices")
     parser.add_argument("--temperature", type=float, default=TEMPERATURE, help="Temperature for generation")
@@ -277,7 +326,11 @@ def main():
         os.makedirs("outputs", exist_ok=True)
         # Generate a filename based on the voice and a timestamp
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        output_file = f"outputs/{args.voice}_{timestamp}.wav"
+        if args.voice_wav:
+            voice_name = args.voice_wav.replace(".wav", "").replace(" ", "_")
+            output_file = f"outputs/{voice_name}_{timestamp}.wav"
+        else:
+            output_file = f"outputs/{args.voice}_{timestamp}.wav"
         print(f"No output file specified. Saving to {output_file}")
     
     # Generate speech
@@ -285,8 +338,11 @@ def main():
     audio_segments = generate_speech_from_api(
         prompt=prompt,
         voice=args.voice,
+        voice_wav=args.voice_wav,
+        transcript=args.transcript,
         temperature=args.temperature,
         top_p=args.top_p,
+        max_tokens=args.max_tokens,
         repetition_penalty=args.repetition_penalty,
         output_file=output_file
     )
