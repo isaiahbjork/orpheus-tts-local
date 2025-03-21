@@ -11,90 +11,17 @@ import threading
 import queue
 import asyncio
 
-# LM Studio API settings
-API_URL = "http://127.0.0.1:1234/v1/completions"
-HEADERS = {
-    "Content-Type": "application/json"
-}
+from common import DEFAULT_VOICE, MAX_TOKENS, TEMPERATURE, TOP_P, REPETITION_PENALTY, CUSTOM_TOKEN_PREFIX, SAMPLE_RATE, AVAILABLE_VOICES
 
-# Model parameters
-MAX_TOKENS = 1200
-TEMPERATURE = 0.6
-TOP_P = 0.9
-REPETITION_PENALTY = 1.1
-SAMPLE_RATE = 24000  # SNAC model uses 24kHz
 
-# Available voices based on the Orpheus-TTS repository
-AVAILABLE_VOICES = ["tara", "leah", "jess", "leo", "dan", "mia", "zac", "zoe"]
-DEFAULT_VOICE = "tara"  # Best voice according to documentation
+def get_generate_tokens_from_api(backend):
+    """Get the generate_tokens_from_api function based on the backend."""
+    if backend == "ollama":
+        from plugins.ollama import generate_tokens_from_api
+    else:
+        from plugins.lmstudio import generate_tokens_from_api
+    return generate_tokens_from_api
 
-# Special token IDs for Orpheus model
-START_TOKEN_ID = 128259
-END_TOKEN_IDS = [128009, 128260, 128261, 128257]
-CUSTOM_TOKEN_PREFIX = "<custom_token_"
-
-def format_prompt(prompt, voice=DEFAULT_VOICE):
-    """Format prompt for Orpheus model with voice prefix and special tokens."""
-    if voice not in AVAILABLE_VOICES:
-        print(f"Warning: Voice '{voice}' not recognized. Using '{DEFAULT_VOICE}' instead.")
-        voice = DEFAULT_VOICE
-        
-    # Format similar to how engine_class.py does it with special tokens
-    formatted_prompt = f"{voice}: {prompt}"
-    
-    # Add special token markers for the LM Studio API
-    special_start = "<|audio|>"  # Using the additional_special_token from config
-    special_end = "<|eot_id|>"   # Using the eos_token from config
-    
-    return f"{special_start}{formatted_prompt}{special_end}"
-
-def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATURE, 
-                            top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
-    """Generate tokens from text using LM Studio API."""
-    formatted_prompt = format_prompt(prompt, voice)
-    print(f"Generating speech for: {formatted_prompt}")
-    
-    # Create the request payload for the LM Studio API
-    payload = {
-        "model": "orpheus-3b-0.1-ft-q4_k_m",  # Model name can be anything, LM Studio ignores it
-        "prompt": formatted_prompt,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "top_p": top_p,
-        "repeat_penalty": repetition_penalty,
-        "stream": True
-    }
-    
-    # Make the API request with streaming
-    response = requests.post(API_URL, headers=HEADERS, json=payload, stream=True)
-    
-    if response.status_code != 200:
-        print(f"Error: API request failed with status code {response.status_code}")
-        print(f"Error details: {response.text}")
-        return
-    
-    # Process the streamed response
-    token_counter = 0
-    for line in response.iter_lines():
-        if line:
-            line = line.decode('utf-8')
-            if line.startswith('data: '):
-                data_str = line[6:]  # Remove the 'data: ' prefix
-                if data_str.strip() == '[DONE]':
-                    break
-                    
-                try:
-                    data = json.loads(data_str)
-                    if 'choices' in data and len(data['choices']) > 0:
-                        token_text = data['choices'][0].get('text', '')
-                        token_counter += 1
-                        if token_text:
-                            yield token_text
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
-                    continue
-    
-    print("Token generation complete")
 
 def turn_token_into_id(token_string, index):
     """Convert token string to numeric ID for audio processing."""
@@ -121,11 +48,13 @@ def turn_token_into_id(token_string, index):
     else:
         return None
 
+
 def convert_to_audio(multiframe, count):
     """Convert token frames to audio."""
     # Import here to avoid circular imports
     from decoder import convert_to_audio as orpheus_convert_to_audio
     return orpheus_convert_to_audio(multiframe, count)
+
 
 async def tokens_decoder(token_gen):
     """Asynchronous token decoder that converts token stream to audio stream."""
@@ -143,6 +72,7 @@ async def tokens_decoder(token_gen):
                 audio_samples = convert_to_audio(buffer_to_proc, count)
                 if audio_samples is not None:
                     yield audio_samples
+
 
 def tokens_decoder_sync(syn_token_gen, output_file=None):
     """Synchronous wrapper for the asynchronous token decoder."""
@@ -201,6 +131,7 @@ def tokens_decoder_sync(syn_token_gen, output_file=None):
     
     return audio_segments
 
+
 def stream_audio(audio_buffer):
     """Stream audio buffer to output device."""
     if audio_buffer is None or len(audio_buffer) == 0:
@@ -217,8 +148,10 @@ def stream_audio(audio_buffer):
     sd.wait()
 
 def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE, 
-                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
-    """Generate speech from text using Orpheus model via LM Studio API."""
+                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY, backend="lmstudio"):
+    """Generate speech from text using Orpheus model via API."""
+    generate_tokens_from_api = get_generate_tokens_from_api(backend)
+
     return tokens_decoder_sync(
         generate_tokens_from_api(
             prompt=prompt, 
@@ -231,6 +164,7 @@ def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temp
         output_file=output_file
     )
 
+
 def list_available_voices():
     """List all available voices with the recommended one marked."""
     print("Available voices (in order of conversational realism):")
@@ -242,9 +176,11 @@ def list_available_voices():
     print("\nAvailable emotion tags:")
     print("<laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>")
 
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Orpheus Text-to-Speech using LM Studio API")
+    parser.add_argument("--backend", choices=["ollama", "lmstudio"], default="lmstudio", help="API backend to use (lmstudio is default, also supports ollama)")
     parser.add_argument("--text", type=str, help="Text to convert to speech")
     parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help=f"Voice to use (default: {DEFAULT_VOICE})")
     parser.add_argument("--output", type=str, help="Output WAV file path")
@@ -288,12 +224,14 @@ def main():
         temperature=args.temperature,
         top_p=args.top_p,
         repetition_penalty=args.repetition_penalty,
-        output_file=output_file
+        output_file=output_file,
+        backend=args.backend
     )
     end_time = time.time()
     
     print(f"Speech generation completed in {end_time - start_time:.2f} seconds")
     print(f"Audio saved to {output_file}")
+
 
 if __name__ == "__main__":
     main() 
