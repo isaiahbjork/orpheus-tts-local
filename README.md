@@ -8,6 +8,7 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
 - 💻 Completely local - no cloud API keys needed
 - 🔊 Multiple voice options (tara, leah, jess, leo, dan, mia, zac, zoe)
 - 💾 Save audio to WAV files
+- 💬 Interactive chat with Ollama AI models with voice responses (with emotions)
 
 ## Quick Setup
 
@@ -28,8 +29,14 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
 
 ## Usage
 
+### Basic TTS
 ```
 python gguf_orpheus.py --text "Your text here" --voice tara --output "output.wav"
+```
+
+### Interactive Chat with Voice (Using Ollama AI)
+```
+python ollama_chat_TTS.py --model llama2 --voice tara
 ```
 
 ### Options
