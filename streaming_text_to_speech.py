@@ -1,3 +1,7 @@
+import importlib.util
+if importlib.util.find_spec("fastrtc") is None:
+    raise RuntimeError("fastrtc is not installed. Please install it using 'pip install fastrtc>=0.0.17'.")
+
 from gguf_orpheus import generate_tokens_from_api, tokens_decoder, AVAILABLE_VOICES, DEFAULT_VOICE
 from fastrtc import Stream, AsyncStreamHandler, AudioEmitType, wait_for_item, async_aggregate_bytes_to_16bit, AdditionalOutputs
 from fastrtc.utils import create_message
