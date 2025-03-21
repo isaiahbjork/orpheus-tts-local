@@ -5,7 +5,7 @@ from common import format_prompt, DEFAULT_VOICE, MAX_TOKENS, TEMPERATURE, TOP_P,
 
 
 OLLAMA_API_URL = "http://localhost:11434/v1/completions"
-TTS_MODEL = "isaiabjork/orpheus-tts:3b-Q4_K_M"
+TTS_MODEL = "hf.co/isaiahbjork/orpheus-3b-0.1-ft-Q4_K_M-GGUF"
 
 def generate_tokens_from_api(prompt, voice=DEFAULT_VOICE, temperature=TEMPERATURE, 
                             top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=REPETITION_PENALTY):
