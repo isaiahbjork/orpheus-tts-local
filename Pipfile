@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = false
+name = "pip_conf_index_global"
+
+[packages]
+torch = ">=2.0.0"
+numpy = "*"
+sounddevice = "*"
+requests = "*"
+wave = ">=0.0.2"
+snac = ">=1.2.1"
+streamlit = "*"
+soundfile = "*"
+gradio = "*"
+
+[dev-packages]
+types-requests = "*"
+
+[requires]
+python_version = "3.12"
