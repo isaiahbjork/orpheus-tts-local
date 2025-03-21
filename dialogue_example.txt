@@ -1,0 +1,61 @@
+leah: Uh, good morning, Leo! Come on in, please, yeah, have a seat. So, um, what’s been going on with you today, huh?
+
+leo: Oh, hi, Doctor Leah. Well, uh, I’ve been feeling unwell lately, you know? I was actually thinking, uh, I need to make an appointment with the doctor, please, but, uh, I guess I’m here now, right?
+
+leah: <chuckle> Yeah, no worries at all, I’ve got you covered. So, tell me, uh, what’s been feeling off?
+
+leo: Hmm, let’s see… I have a sore throat and a cough <cough>, and, uh, I think—yeah, I think I have a fever too.
+
+leah: Oh, wow, okay. How long have you been dealing with all this, then?
+
+leo: Uh, well, about—about three days now, I’d say. Oh, and, uh, yesterday, I—I twisted my ankle, and it, uh, it hurts a lot.
+
+leah: <sigh> Oh, man, that’s a lot to handle! Let’s, uh, let’s check that ankle soon, alright? Anything else bugging you?
+
+leo: Yeah, uh, I’ve had a headache for a few days now, and—and honestly, I’m kinda thinking, you know, I might have the flu or something.
+
+leah: Huh, yeah, that could be it—it’s been going around, you know. Okay, let’s—let’s start with your temp. Yup, uh, 101 degrees, definitely a fever. And your throat— oof, it’s super red. Now, uh, that ankle—how’d that happen?
+
+leo: Oh, uh, I was jogging, and—and I stepped on something weird, you know, and just—bam—twisted it. Hurts when I walk, like, a lot.
+
+leah: <groan> Ouch, I bet! Alright, let me see— it’s pretty swollen. Does it hurt if I press here?
+
+leo: <groan> Oh, yeah, yeah, tons!
+
+leah: Okay, okay, easy now. Looks like a sprain, but, uh, we’ll need an X-ray just to be sure, you know? I’ll wrap it for now. And—and for those flu symptoms, I think, uh, you’ll need a prescription for your medication. You got any allergies I should know about?
+
+leo: Uh, no, not—not that I know of. But, yeah, I do need a prescription for my medication, for sure.
+
+leah: Alright, cool, I’ll write that up—something for the fever, the pain, and, uh, that cough. You can grab it downstairs.
+
+leo: Oh, nice. Uh, is there—is there a pharmacy nearby?
+
+leah: Yup, yeah, right downstairs, first floor—super handy.
+
+leo: Oh, awesome, awesome. Uh, how much—how much will this medication cost, you think?
+
+leah: Hmm, probably, uh, around $20 or so, but, you know, depends on your insurance. Just—just check with the pharmacist, okay?
+
+leo: Got it, got it. Oh, and, uh, do I need to—do I need to take any tests or anything?
+
+leah: Good question! Uh, for the flu, we could do a test, but, honestly, your symptoms are screaming flu already, so—so we can skip it unless you really wanna know. But the ankle? Yeah, uh, an X-ray’s gotta happen to make sure it’s not broken.
+
+leo: Oh, okay, uh, let’s—let’s do the X-ray then, yeah.
+
+leah: Perfect, I’ll get that sorted. Anything else on your mind, Leo?
+
+leo: Uh, yeah, actually—can you, uh, can you recommend any over-the-counter remedies maybe?
+
+leah: Oh, for sure, for sure! Uh, for the fever and headache, grab some acetaminophen or ibuprofen, you know? And the cough—uh, something with dextromethorphan should calm it down. Oh, and—and hydrate, lots of water, okay?
+
+leo: Nice, thanks. Uh, what—what are the side effects of this medicine you’re giving me?
+
+leah: Oh, right, yeah, good to ask. It’s usually fine, but, uh, you might feel a bit drowsy, or—or maybe your stomach’ll act up a little. If anything weird happens, like a rash or something, just stop and call me, alright?
+
+leo: Okay, yeah, got it. Uh, when—when should I return for a follow-up appointment?
+
+leah: Hmm, let’s see… if the flu stuff doesn’t get better in, say, a week—or if it gets worse—come back sooner, yeah? For the ankle, uh, once we get those X-ray results, we’ll set something up—maybe two weeks if it’s just a sprain.
+
+leo: Alright, that works. Uh, thank you—thank you so much for your help, Doctor Leah.
+
+leah: <laugh> Oh, you’re welcome, Leo! Take it easy, alright? Feel better soon!

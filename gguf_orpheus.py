@@ -27,6 +27,7 @@ SAMPLE_RATE = 24000  # SNAC model uses 24kHz
 # Available voices based on the Orpheus-TTS repository
 AVAILABLE_VOICES = ["tara", "leah", "jess", "leo", "dan", "mia", "zac", "zoe"]
 DEFAULT_VOICE = "tara"  # Best voice according to documentation
+OUTPUT_DIR = "outputs"
 
 # Special token IDs for Orpheus model
 START_TOKEN_ID = 128259
@@ -274,10 +275,10 @@ def main():
     output_file = args.output
     if not output_file:
         # Create outputs directory if it doesn't exist
-        os.makedirs("outputs", exist_ok=True)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
         # Generate a filename based on the voice and a timestamp
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        output_file = f"outputs/{args.voice}_{timestamp}.wav"
+        output_file = f"{OUTPUT_DIR}/{args.voice}_{timestamp}.wav"
         print(f"No output file specified. Saving to {output_file}")
     
     # Generate speech
