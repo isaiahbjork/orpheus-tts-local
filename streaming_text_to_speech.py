@@ -36,7 +36,6 @@ from gguf_orpheus import (
     format_prompt,
     tokens_decoder,
 )
-import datetime
 
 async_client = httpx.AsyncClient()
 
@@ -118,11 +117,9 @@ class OrpheusStream(AsyncStreamHandler):
         self.latest_msg = ""
         self.latest_voice_id = DEFAULT_VOICE
         self.audio_queue: asyncio.Queue[AudioEmitType] = asyncio.Queue()
-        self.first_chunk = True
 
     async def start_up(self):
         await self.wait_for_args()
-        self.start_time = datetime.datetime.now()
 
     async def receive(self, frame: tuple[int, npt.NDArray[np.int16]]) -> None:
         msg, cb, voice_id, _ = self.latest_args[1:]
