@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import json
-import logging
 import queue
 import re
 import sys
@@ -16,9 +15,6 @@ from typing import Any, AsyncIterator, Generator, Optional
 import numpy as np
 import requests
 import sounddevice as sd
-
-# Set up logging
-logger = logging.getLogger(__name__)
 
 # LM Studio API settings
 API_URL = "http://127.0.0.1:1234/v1/completions"
@@ -87,8 +83,8 @@ def format_prompt(prompt: str, voice: str = DEFAULT_VOICE) -> str:
         A formatted prompt string ready for the model
     """
     if voice not in AVAILABLE_VOICES:
-        logger.warning(
-            f"Voice '{voice}' not recognized. Using '{DEFAULT_VOICE}' instead."
+        print(
+            f"Warning: Voice '{voice}' not recognized. Using '{DEFAULT_VOICE}' instead."
         )
         voice = DEFAULT_VOICE
 
@@ -159,7 +155,7 @@ def generate_tokens_from_api(
         Token strings from the API response
     """
     formatted_prompt = format_prompt(prompt, voice)
-    logger.debug(f"Generating speech for: {formatted_prompt}")
+    print(f"Generating speech for: {formatted_prompt}")
 
     # Create the request payload for the LM Studio API
     payload: dict[str, Any] = {
@@ -176,8 +172,8 @@ def generate_tokens_from_api(
     response = requests.post(API_URL, headers=HEADERS, json=payload, stream=True)
 
     if response.status_code != 200:
-        logger.error(f"API request failed with status code {response.status_code}")
-        logger.error(f"Error details: {response.text}")
+        print(f"Error: API request failed with status code {response.status_code}")
+        print(f"Error details: {response.text}")
         return
 
     # Process the streamed response
@@ -198,10 +194,10 @@ def generate_tokens_from_api(
                         if token_text:
                             yield token_text
                 except json.JSONDecodeError as e:
-                    logger.error(f"Error decoding JSON: {e}")
+                    print(f"Error decoding JSON: {e}")
                     continue
 
-    logger.debug("Token generation complete")
+    print("Token generation complete")
 
 
 def turn_token_into_id(token_string: str, index: int) -> Optional[int]:
@@ -347,8 +343,8 @@ def tokens_decoder_sync(
     duration = (
         sum([len(segment) // (2 * 1) for segment in audio_segments]) / SAMPLE_RATE
     )
-    logger.debug(f"Generated {len(audio_segments)} audio segments")
-    logger.debug(f"Generated {duration:.2f} seconds of audio")
+    print(f"Generated {len(audio_segments)} audio segments")
+    print(f"Generated {duration:.2f} seconds of audio")
 
     return audio_segments
 
@@ -406,10 +402,10 @@ def generate_speech_from_api(
         chunks = chunk_text(prompt, chunk_max_length)
         all_audio_segments: list[bytes] = []
 
-        logger.info(f"Text split into {len(chunks)} chunks for processing")
+        print(f"Text split into {len(chunks)} chunks for processing")
 
         for i, chunk in enumerate(chunks):
-            logger.debug(f"Processing chunk {i + 1}/{len(chunks)}: {chunk[:50]}...")
+            print(f"Processing chunk {i + 1}/{len(chunks)}: {chunk[:50]}...")
             chunk_segments = tokens_decoder_sync(
                 generate_tokens_from_api(
                     prompt=chunk,
@@ -436,8 +432,8 @@ def generate_speech_from_api(
             sum([len(segment) // (2 * 1) for segment in all_audio_segments])
             / SAMPLE_RATE
         )
-        logger.info(f"Generated {len(all_audio_segments)} audio segments")
-        logger.info(f"Generated {duration:.2f} seconds of audio")
+        print(f"Generated {len(all_audio_segments)} audio segments")
+        print(f"Generated {duration:.2f} seconds of audio")
 
         return all_audio_segments
     else:
@@ -456,33 +452,15 @@ def generate_speech_from_api(
 
 def list_available_voices() -> None:
     """List all available voices with the recommended one marked."""
-    logger.info("Available voices (in order of conversational realism):")
+    print("Available voices (in order of conversational realism):")
     for voice in AVAILABLE_VOICES:
         marker = "★" if voice == DEFAULT_VOICE else " "
-        logger.info(f"{marker} {voice}")
-    logger.info(f"\nDefault voice: {DEFAULT_VOICE}")
+        print(f"{marker} {voice}")
+    print(f"\nDefault voice: {DEFAULT_VOICE}")
 
-    logger.info("\nAvailable emotion tags:")
-    logger.info(
-        "<laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>"
-    )
-
-
-def setup_logging(level: int = logging.INFO) -> None:
-    """
-    Set up logging configuration.
-
-    Args:
-        level: The logging level to use
-    """
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler("orpheus_tts.log"),
-        ],
-    )
+    print("\nAvailable emotion tags:")
+    for tag in sorted(EMOTION_TAGS):
+        print(tag)
 
 
 def main() -> None:
@@ -528,17 +506,8 @@ def main() -> None:
         default=CHUNK_LIMIT,
         help="Maximum length of text chunks for processing",
     )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug logging",
-    )
 
     args = parser.parse_args()
-
-    # Set up logging with appropriate level
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    setup_logging(log_level)
 
     if args.list_voices:
         list_available_voices()
@@ -549,7 +518,7 @@ def main() -> None:
     if args.file:
         file_path = Path(args.file)
         if not file_path.exists():
-            logger.error(f"File {file_path} does not exist")
+            print(f"Error: File {file_path} does not exist")
             return
         prompt = file_path.read_text(encoding="utf-8")
     elif args.text:
@@ -562,7 +531,6 @@ def main() -> None:
             "--temperature",
             "--top_p",
             "--repetition_penalty",
-            "--debug",
         ):
             prompt = " ".join([arg for arg in sys.argv[1:] if not arg.startswith("--")])
         else:
@@ -581,7 +549,7 @@ def main() -> None:
         # Generate a filename based on the voice and a timestamp
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         output_file = outputs_dir / f"{args.voice}_{timestamp}.wav"
-        logger.info(f"No output file specified. Saving to {output_file}")
+        print(f"No output file specified. Saving to {output_file}")
 
     # Create configuration
     config = TTSConfig(
@@ -594,6 +562,7 @@ def main() -> None:
 
     # Generate speech
     start_time = time.time()
+
     if prompt:
         audio_segments = generate_speech_from_api(
             prompt=prompt,
@@ -606,8 +575,8 @@ def main() -> None:
         )
     end_time = time.time()
 
-    logger.info(f"Speech generation completed in {end_time - start_time:.2f} seconds")
-    logger.info(f"Audio saved to {output_file}")
+    print(f"Speech generation completed in {end_time - start_time:.2f} seconds")
+    print(f"Audio saved to {output_file}")
 
 
 if __name__ == "__main__":

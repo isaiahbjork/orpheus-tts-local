@@ -4,3 +4,5 @@ sounddevice>=0.4.4
 requests>=2.25.0
 wave>=0.0.2 
 snac>=1.2.1
+soundfile>=0.13.1
+streamlit>=1.43.2
