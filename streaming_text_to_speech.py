@@ -126,18 +126,37 @@ class OrpheusStream(AsyncStreamHandler):
         if msg != self.latest_msg or voice_id != self.latest_voice_id:
             await self.send_message(create_message("log", "pause_detected"))
             tokens = generate_tokens_from_api_async(msg, voice_id)
+
+            # Initialize variables
             all_audio = np.array([], dtype=np.int16)
-            first_chunk = True
+            buffer = np.array([], dtype=np.int16).reshape(1, 0)
+            started_playback = False
+            sample_rate = 24_000
+            pre_buffer_duration = 1.5  # seconds
+            pre_buffer_samples = sample_rate * pre_buffer_duration
+
             async for chunk in async_aggregate_bytes_to_16bit(tokens_decoder(tokens)):
+                buffer = np.concatenate([buffer, chunk], axis=1)
                 all_audio = np.concatenate([all_audio, chunk.squeeze()])
-                if first_chunk:
-                    first_chunk = False
+
+                if not started_playback and buffer.shape[1] >= pre_buffer_samples:
+                    started_playback = True
                     await self.send_message(create_message("log", "response_starting"))
-                await self.audio_queue.put((24_000, chunk))
+                    await self.audio_queue.put((sample_rate, buffer))
+                    buffer = np.array([], dtype=np.int16).reshape(1, 0)
+                elif started_playback:
+                    await self.audio_queue.put((sample_rate, chunk))
+            if not started_playback and buffer.shape[1] > 0:
+                started_playback = True
+                await self.send_message(create_message("log", "response_starting"))
+                await self.audio_queue.put((sample_rate, buffer))
 
             cb.append({"role": "user", "content": msg})
             cb.append(
-                {"role": "assistant", "content": gr.Audio(value=(24_000, all_audio))}
+                {
+                    "role": "assistant",
+                    "content": gr.Audio(value=(sample_rate, all_audio)),
+                }
             )
             await self.audio_queue.put(AdditionalOutputs(cb))
             self.latest_msg = msg
