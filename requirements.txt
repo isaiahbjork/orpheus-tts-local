@@ -4,3 +4,6 @@ sounddevice>=0.4.4
 requests>=2.25.0
 wave>=0.0.2 
 snac>=1.2.1
+spacy>=3.5.0
+beautifulsoup4>=4.11.0
+markdown>=3.4.0

@@ -8,6 +8,8 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
 - 💻 Completely local - no cloud API keys needed
 - 🔊 Multiple voice options (tara, leah, jess, leo, dan, mia, zac, zoe)
 - 💾 Save audio to WAV files
+- 📚 Generate audiobooks from text, markdown, and HTML files
+- 🧠 Intelligent text chunking using spaCy for natural-sounding speech
 
 ## Quick Setup
 
@@ -25,14 +27,18 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
    ```
    python gguf_orpheus.py --text "Hello, this is a test" --voice tara
    ```
+   
+   Note: When running the audiobook generators for the first time, they will automatically download the required spaCy language model if it's not already installed.
 
 ## Usage
+
+### Basic Text-to-Speech
 
 ```
 python gguf_orpheus.py --text "Your text here" --voice tara --output "output.wav"
 ```
 
-### Options
+#### Options
 
 - `--text`: The text to convert to speech
 - `--voice`: The voice to use (default: tara)
@@ -41,6 +47,45 @@ python gguf_orpheus.py --text "Your text here" --voice tara --output "output.wav
 - `--temperature`: Temperature for generation (default: 0.6)
 - `--top_p`: Top-p sampling parameter (default: 0.9)
 - `--repetition_penalty`: Repetition penalty (default: 1.1)
+
+### Audiobook Generation
+
+#### Simple Audiobook Generator
+
+```
+python audiobook_generator.py mybook.txt --voice leo --output-dir "my_audiobooks"
+```
+
+#### Options
+
+- `input_file`: Input text, markdown, or HTML file
+- `--voice`: Voice to use (default: tara)
+- `--output-dir`: Output directory for audio files (default: outputs/audiobook)
+- `--separate-chunks`: Keep audio chunks as separate files
+- `--by-structure`: Chunk by document structure (for markdown/html)
+- `--list-voices`: List available voices and exit
+
+#### Structured Audiobook Generator
+
+For more advanced document processing with better structure handling:
+
+```
+python structured_audiobook_generator.py mybook.md --voice tara --max-length 600
+```
+
+#### Options
+
+- `input_file`: Input text, markdown, or HTML file
+- `--voice`: Voice to use (default: tara)
+- `--output-dir`: Output directory for audio files (default: outputs/audiobook)
+- `--separate-chunks`: Keep audio chunks as separate files
+- `--max-length`: Maximum characters per chunk (default: 500)
+- `--min-length`: Minimum characters per chunk (default: 50)
+- `--list-voices`: List available voices and exit
+
+### Using as a Library
+
+See `example.py` for basic TTS usage and `example_audiobook.py` for audiobook generation examples.
 
 ## Available Voices
 
