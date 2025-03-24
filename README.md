@@ -1,13 +1,14 @@
 # Orpheus-TTS-Local
 
-A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs/orpheus-3b-0.1-ft) locally using LM Studio API.
+A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs/orpheus-3b-0.1-ft) locally using LM Studio API over WebRTC with [FastRTC](https://fastrtc.org).
 
 ## Features
 
 - 🎧 High-quality Text-to-Speech using the Orpheus TTS model
 - 💻 Completely local - no cloud API keys needed
+- 🔊 Streaming audio over WebRTC with [FastRTC](https://fastrtc.org)
+- 💬 ChatUI for displaying conversation history + downloading audio
 - 🔊 Multiple voice options (tara, leah, jess, leo, dan, mia, zac, zoe)
-- 💾 Save audio to WAV files
 
 ## Quick Setup
 
@@ -23,7 +24,7 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
    ```
 6. Run the script:
    ```
-   python gguf_orpheus.py --text "Hello, this is a test" --voice tara
+   python streaming_text_to_speech.py
    ```
 
 ## Usage
@@ -32,40 +33,6 @@ A lightweight client for running [Orpheus TTS](https://huggingface.co/canopylabs
 python gguf_orpheus.py --text "Your text here" --voice tara --output "output.wav"
 ```
 
-### Options
-
-- `--text`: The text to convert to speech
-- `--voice`: The voice to use (default: tara)
-- `--output`: Output WAV file path (default: auto-generated filename)
-- `--list-voices`: Show available voices
-- `--temperature`: Temperature for generation (default: 0.6)
-- `--top_p`: Top-p sampling parameter (default: 0.9)
-- `--repetition_penalty`: Repetition penalty (default: 1.1)
-
-## Available Voices
-
-- tara - Best overall voice for general use (default)
-- leah
-- jess
-- leo
-- dan
-- mia
-- zac
-- zoe
-
-## Emotion
-You can add emotion to the speech by adding the following tags:
-```xml
-<giggle>
-<laugh>
-<chuckle>
-<sigh>
-<cough>
-<sniffle>
-<groan>
-<yawn>
-<gasp>
-```
 
 ## License
 
